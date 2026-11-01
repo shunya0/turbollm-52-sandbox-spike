@@ -1,0 +1,9 @@
+{
+  "name": "turbollm-sandbox-spike",
+  "private": true,
+  "description": "Throwaway experiments behind the TurboLLM #52 Python sandbox proposal",
+  "license": "MIT",
+  "dependencies": {
+    "pyodide": "0.29.5"
+  }
+}

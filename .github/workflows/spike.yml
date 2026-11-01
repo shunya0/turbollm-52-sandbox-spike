@@ -1,0 +1,56 @@
+name: Sandbox spike
+
+on:
+  push:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  spike:
+    name: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: 2.9.6
+
+      - name: Install Pyodide and build the offline runtime (every wheel sha256-checked)
+        run: |
+          npm ci
+          node fetch-runtime.mjs
+
+      # Experiment 2 needs a real TurboLLM. Pinned to the commit the spike was run against.
+      - uses: actions/checkout@v4
+        with:
+          repository: mohitsoni48/TurboLLM
+          ref: 632fae6ce8f1025c6129fb4e729cc905e9463f35
+          path: turbollm-src
+
+      - name: Install TurboLLM's dependencies
+        working-directory: turbollm-src/turbollm
+        run: npm ci
+
+      - name: Run every experiment and check its result
+        env:
+          TURBOLLM_DIR: ${{ github.workspace }}/turbollm-src/turbollm
+        run: node ci/run-all.mjs
+
+      - name: Keep the files the sandbox handed back
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: sandbox-output-${{ matrix.os }}
+          path: ci-out/
