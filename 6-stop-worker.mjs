@@ -7,11 +7,11 @@ self.onmessage = async ({ data }) => {
     self.py = await loadPyodide({ indexURL: fileURLToPath(new URL('./runtime/', import.meta.url)) })
     self.py.setInterruptBuffer(new Int32Array(data.sab))
     self.py.runPython('state = "kept"')
-    postMessage({ type: 'ready' })
+    postMessage({ id: data.id, type: 'ready' })
   } else if (data.type === 'run') {
     const t0 = performance.now()
     let r
     try { r = String(self.py.runPython(data.code)) } catch (e) { r = String(e.message).split('\n').filter(Boolean).slice(-1)[0] }
-    postMessage({ type: 'done', r, secs: ((performance.now() - t0) / 1000).toFixed(2) })
+    postMessage({ id: data.id, type: 'done', r, secs: ((performance.now() - t0) / 1000).toFixed(2) })
   }
 }

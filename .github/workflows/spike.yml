@@ -50,7 +50,7 @@ jobs:
 
       - name: Keep the files the sandbox handed back
         if: always()
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v6
         with:
           name: sandbox-output-${{ matrix.os }}
           path: ci-out/
