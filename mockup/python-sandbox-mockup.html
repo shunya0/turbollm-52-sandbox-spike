@@ -450,7 +450,7 @@ Total 37300`
         cap: { t: 'It runs too long', b: 'Press ■ Stop at any time, or wait for the 60 s limit. Stop is today\'s stop button; it now also reaches Python.', refs: [] } },
       { set: [{ id: 'l1', status: 'stopped', label: (v) => v.stopped ? `stopped by you · ${v.stopped}s` : 'stopped · 60s', note: (v) => (v.stopped ? `Stopped by you after ${v.stopped} s.` : 'Stopped after 60 s.') + ' Python kept your earlier work.', noteKind: 'warn', result: 'KeyboardInterrupt', open: true }],
         push: [{ id: 'a1', type: 'assistant', text: 'My loop never added the monthly ₹5,000, so the value stayed at zero. Fixed version:' }, { id: 'l2', type: 'tool', status: 'writing' }], auto: 1600,
-        cap: { t: 'Stopped politely', b: 'A plain Python loop stops cleanly, with every variable kept: in CI it stopped within 0.03 s of the request in 14 of 15 runs. If it ever takes longer than 2 s, TurboLLM restarts Python instead.', refs: [] } },
+        cap: { t: 'Stopped politely', b: 'A plain Python loop stops cleanly, with every variable kept: in CI it stopped within 0.03 s of the request in all but one run. If it ever takes longer than 2 s, TurboLLM restarts Python instead.', refs: [] } },
       { set: [{ id: 'l2', status: 'waiting' }], approval: { tool: 'l2', kind: 'python', code: CODE.loop2, reads: 'nothing' }, cap: { t: 'Approve the fix', b: '', refs: [] } },
       { set: [{ id: 'l2', status: 'running', elapsed: 0 }], tick: { id: 'l2', to: 0, ms: 500 }, composer: { running: true }, cap: { t: 'Runs at once', b: '', refs: [] } },
       { set: [{ id: 'l2', status: 'done', time: '0.1s', result: '306 months = 25 years 6 months\nFinal value 10002928', open: true, files: [{ kind: 'py', name: 'run-2.py', size: '1 KB' }] }],
