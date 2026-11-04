@@ -1,0 +1,737 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Python Sandbox Mockup</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<style>
+/* Layout: a narrow director's rail (scenarios + narration) beside a faithful TurboLLM chat frame.
+   Colours are TurboLLM's own tokens from web/src/index.css; the three tag colours are the mockup's. */
+:root {
+  --bg: #faf9f7; --panel: #ffffff; --panel-2: #f4f2ee; --ink: #1a1a18; --muted: #6b6a66; --faint: #6f6e69;
+  --border: #e7e4de; --border-strong: #d6d2c8; --accent: #c96442; --accent-hover: #b85837; --on-accent: #ffffff;
+  --ok: #3a9d6b; --warn: #c9913f; --err: #c4453c;
+  --tag-reuse: #6b6a66; --tag-extend: #2f74a8; --tag-new: #8546c2; --tag-v2: #b0506e;
+  --png-bg: #ffffff; --png-ink: #262624; --png-grid: #e6e3dd; --png-bar: #c96442;
+  --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: ui-monospace, "Cascadia Code", Consolas, monospace;
+  --radius-lg: 16px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0e0e10; --panel: #17171a; --panel-2: #1d1d21; --ink: #ededec; --muted: #9a9a96; --faint: #8a8983;
+    --border: #2a2a2e; --border-strong: #3a3a40; --accent: #e08a5f; --accent-hover: #e89a73; --on-accent: #1a1a18;
+    --ok: #4cc38a; --warn: #d8a45a; --err: #e06c5f;
+    --tag-reuse: #9a9a96; --tag-extend: #6bb0e0; --tag-new: #b98ae8; --tag-v2: #e58aa6;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0e0e10; --panel: #17171a; --panel-2: #1d1d21; --ink: #ededec; --muted: #9a9a96; --faint: #8a8983;
+  --border: #2a2a2e; --border-strong: #3a3a40; --accent: #e08a5f; --accent-hover: #e89a73; --on-accent: #1a1a18;
+  --ok: #4cc38a; --warn: #d8a45a; --err: #e06c5f;
+  --tag-reuse: #9a9a96; --tag-extend: #6bb0e0; --tag-new: #b98ae8; --tag-v2: #e58aa6;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font-family: var(--font-sans); font-size: 14px; line-height: 1.5; }
+.page { max-width: 1240px; margin: 0 auto; padding-block: 20px 40px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+button { font: inherit; color: inherit; }
+button:focus-visible, .chip:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+code, pre { font-family: var(--font-mono); }
+
+/* header */
+.top { display: flex; flex-wrap: wrap; gap: 12px 24px; align-items: flex-end; justify-content: space-between; margin-bottom: 18px; }
+.top h1 { font-size: 22px; margin: 0; letter-spacing: -0.01em; text-wrap: balance; }
+.top p { margin: 4px 0 0; color: var(--muted); max-width: 68ch; }
+.legend { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; font-size: 12px; color: var(--muted); }
+.switch { display: inline-flex; align-items: center; gap: 8px; cursor: pointer; padding: 4px 10px; border: 1px solid var(--border); border-radius: 999px; background: var(--panel); }
+.switch input { accent-color: var(--accent); margin: 0; }
+
+/* grid */
+.grid { display: grid; gap: 20px; grid-template-columns: 300px minmax(0, 1fr); grid-template-areas: "picker frame" "cap frame"; align-items: start; }
+#picker { grid-area: picker; } #frameWrap { grid-area: frame; min-width: 0; } #cap { grid-area: cap; }
+@media (max-width: 860px) { .grid { grid-template-columns: minmax(0, 1fr); grid-template-areas: "picker" "frame" "cap"; } }
+
+/* picker */
+.group-label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--faint); margin: 0 0 6px; }
+.scen-list { display: flex; flex-direction: column; gap: 2px; margin-bottom: 14px; }
+.scen { text-align: left; border: 0; background: none; padding: 7px 10px; border-radius: 8px; cursor: pointer; color: var(--ink); display: flex; gap: 8px; align-items: baseline; }
+.scen:hover { background: var(--panel-2); }
+.scen[aria-current="true"] { background: var(--panel); box-shadow: inset 0 0 0 1px var(--border-strong); font-weight: 600; }
+.scen .n { font-variant-numeric: tabular-nums; color: var(--faint); font-size: 12px; min-width: 1.4em; }
+@media (max-width: 860px) {
+  .scen-wrap { overflow-x: auto; margin-bottom: 4px; }
+  .scen-list { flex-direction: row; width: max-content; margin-bottom: 8px; }
+  .scen { white-space: nowrap; }
+}
+
+/* caption */
+.cap { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 14px 16px; }
+.cap .stepno { font-size: 12px; color: var(--faint); font-variant-numeric: tabular-nums; }
+.cap h2 { font-size: 16px; margin: 2px 0 6px; text-wrap: balance; }
+.cap p { margin: 0 0 8px; }
+.cap .refs { margin: 8px 0 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: var(--muted); }
+.cap .refs code { font-size: 11.5px; color: var(--ink); background: var(--panel-2); padding: 1px 5px; border-radius: 4px; }
+.cap .today { margin-top: 10px; }
+.cap .today-label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--faint); margin-bottom: 4px; }
+.nav { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
+.btn { border: 1px solid var(--border-strong); background: var(--panel); border-radius: 8px; padding: 6px 12px; cursor: pointer; font-size: 13px; }
+.btn:hover:not(:disabled) { background: var(--panel-2); }
+.btn:disabled { opacity: 0.45; cursor: default; }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+.btn.primary:hover:not(:disabled) { background: var(--accent-hover); }
+.btn.sm { padding: 4px 10px; font-size: 12.5px; }
+
+/* tags */
+.tag { display: inline-flex; align-items: center; font-size: 10.5px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase;
+  padding: 1px 6px; border-radius: 4px; border: 1px solid currentColor; line-height: 1.5; white-space: nowrap; font-family: var(--font-sans); }
+.tag.reuse { color: var(--tag-reuse); } .tag.extend { color: var(--tag-extend); } .tag.new { color: var(--tag-new); } .tag.v2 { color: var(--tag-v2); }
+.tags-off .frame .tag { display: none; }
+.tagged { position: relative; }
+.tagpos { position: absolute; top: -9px; right: 8px; background: var(--bg); z-index: 2; }
+
+/* frame */
+.frame { background: var(--bg); border: 1px solid var(--border-strong); border-radius: 14px; overflow: hidden; display: flex; flex-direction: column; min-height: 640px; }
+.frame.phone { max-width: 390px; margin: 0 auto; border-radius: 28px; min-height: 700px; }
+.frame-label { text-align: center; font-size: 12px; color: var(--muted); margin-bottom: 8px; }
+.appbar { display: flex; align-items: center; gap: 10px; padding: 10px 14px; border-bottom: 1px solid var(--border); background: var(--panel); flex-wrap: wrap; }
+.appbar .title { font-weight: 600; font-size: 13.5px; }
+.modelchip { margin-left: auto; font-size: 12px; color: var(--muted); border: 1px solid var(--border); border-radius: 999px; padding: 2px 10px; font-family: var(--font-mono); }
+.logo { width: 18px; height: 18px; border-radius: 5px; background: var(--accent); }
+.transcript { flex: 1; padding: 18px 16px 8px; display: flex; flex-direction: column; gap: 12px; overflow-y: auto; max-height: 720px; min-height: 380px; }
+.empty-chat { margin: auto; text-align: center; color: var(--faint); font-size: 13px; }
+
+.u { align-self: flex-end; max-width: min(88%, 620px); display: flex; flex-direction: column; align-items: flex-end; gap: 6px; }
+.bubble { background: var(--accent); color: var(--on-accent); padding: 9px 14px; border-radius: var(--radius-lg); font-size: 14.5px; white-space: pre-wrap; overflow-wrap: anywhere; }
+.chips { display: flex; flex-wrap: wrap; gap: 4px; justify-content: flex-end; }
+.chip { display: inline-flex; align-items: center; gap: 5px; border: 1px solid var(--border); background: var(--panel-2); border-radius: 6px; padding: 2px 8px; font-size: 12px; color: var(--muted); }
+.chip .meta { color: var(--faint); }
+.chip .ready { color: var(--ok); }
+
+.a { max-width: min(100%, 680px); font-size: 14.5px; }
+.a p { margin: 0 0 6px; }
+.tool { border: 1px solid var(--border); background: var(--panel-2); border-radius: 10px; overflow: hidden; max-width: 680px; }
+.tool.wait { border-color: var(--warn); background: color-mix(in srgb, var(--warn) 6%, var(--panel-2)); }
+.tool-head { display: flex; align-items: center; gap: 8px; padding: 6px 12px; width: 100%; border: 0; background: none; text-align: left; flex-wrap: wrap; }
+.tool-head .name { font-family: var(--font-mono); font-size: 12px; font-weight: 600; }
+.tool-head .st { font-size: 11.5px; color: var(--faint); }
+.tool-head .st.live { color: var(--accent); }
+.tool-head .st.warnc { color: var(--warn); }
+.tool-head .chev { margin-left: auto; color: var(--faint); }
+.tool-body { border-top: 1px solid var(--border); padding: 8px 12px 10px; display: flex; flex-direction: column; gap: 8px; }
+.note { font-size: 13px; padding: 6px 10px; border-radius: 6px; border-left: 3px solid var(--warn); background: color-mix(in srgb, var(--warn) 9%, transparent); }
+.note.err { border-left-color: var(--err); background: color-mix(in srgb, var(--err) 8%, transparent); }
+.note.ok { border-left-color: var(--ok); background: color-mix(in srgb, var(--ok) 8%, transparent); }
+.out { margin: 0; font-size: 11.5px; line-height: 1.55; color: var(--muted); white-space: pre-wrap; max-height: 180px; overflow: auto; }
+
+.files { display: flex; flex-direction: column; gap: 8px; max-width: 680px; }
+.png { background: var(--png-bg); border: 1px solid var(--border); border-radius: 8px; padding: 10px; max-width: 460px; }
+.png svg { display: block; width: 100%; height: auto; }
+.dl-row { display: flex; flex-wrap: wrap; gap: 6px; }
+.dl { display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--border-strong); background: var(--panel); border-radius: 8px; padding: 4px 10px; font-size: 12.5px; cursor: pointer; }
+.dl:hover { background: var(--panel-2); }
+.dl .sz { color: var(--faint); font-variant-numeric: tabular-nums; }
+
+/* approval bar */
+.approval { margin: 0 12px 12px; border: 1px solid var(--warn); background: color-mix(in srgb, var(--warn) 8%, var(--bg)); border-radius: 8px; padding: 10px 12px; font-size: 13px; }
+.approval .ah { display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: baseline; }
+.approval .ah b { font-weight: 600; }
+.facts { display: flex; flex-wrap: wrap; gap: 4px 14px; margin-top: 4px; font-size: 12px; color: var(--muted); }
+.facts span b { color: var(--ink); font-weight: 600; }
+.warnline { margin-top: 6px; font-size: 12.5px; color: var(--ink); background: color-mix(in srgb, var(--err) 9%, transparent); border-left: 3px solid var(--err); padding: 5px 8px; border-radius: 4px; }
+.codebox { margin-top: 8px; border: 1px solid var(--border); background: var(--panel); border-radius: 6px; max-height: 190px; overflow: auto; }
+.codebox pre { margin: 0; padding: 8px 0; font-size: 12px; line-height: 1.6; counter-reset: ln; }
+.codebox .ln { display: block; padding: 0 12px 0 0; white-space: pre; }
+.codebox .ln::before { counter-increment: ln; content: counter(ln); display: inline-block; width: 2.6em; padding-right: 0.9em; text-align: right; color: var(--faint); user-select: none; }
+.prewarm { margin-top: 6px; font-size: 12px; color: var(--muted); display: flex; align-items: center; gap: 6px; }
+.abtns { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.today-bar { border: 1px solid var(--warn); background: color-mix(in srgb, var(--warn) 8%, var(--bg)); border-radius: 8px; padding: 8px 10px; font-size: 12.5px; }
+.today-bar .mono { font-family: var(--font-mono); font-size: 11.5px; color: var(--muted); overflow-wrap: anywhere; }
+
+/* composer */
+.composer { margin: 0 12px 12px; border: 1px solid var(--border-strong); background: var(--panel); border-radius: 14px; padding: 8px 8px 8px 10px; }
+.composer .cchips { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 6px; }
+.crow { display: flex; align-items: flex-end; gap: 8px; }
+.ctext { flex: 1; min-width: 0; padding: 6px 2px; font-size: 14.5px; min-height: 22px; overflow-wrap: anywhere; }
+.ctext.ph { color: var(--faint); }
+.icobtn { width: 32px; height: 32px; border-radius: 9px; border: 0; display: inline-grid; place-items: center; cursor: pointer; background: none; color: var(--muted); flex: none; }
+.icobtn:hover:not(:disabled) { background: var(--panel-2); }
+.icobtn.send { background: var(--accent); color: var(--on-accent); }
+.icobtn.send:disabled { opacity: 0.4; cursor: default; }
+.icobtn.stop { background: var(--ink); color: var(--bg); }
+.icobtn:disabled { opacity: 0.45; cursor: default; }
+.tool-wrap { max-width: 680px; }
+.chips .tag { align-self: center; }
+
+/* settings frame */
+.settings { display: grid; grid-template-columns: 180px minmax(0, 1fr); flex: 1; }
+.snav { border-right: 1px solid var(--border); padding: 14px 8px; display: flex; flex-direction: column; gap: 2px; background: var(--panel); }
+.snav div { padding: 6px 10px; border-radius: 6px; color: var(--muted); font-size: 13px; }
+.snav div.on { background: var(--panel-2); color: var(--ink); font-weight: 600; }
+.sbody { padding: 18px; display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.sbody h3 { margin: 0; font-size: 15px; }
+.srow { border: 1px solid var(--border); background: var(--panel); border-radius: 10px; padding: 12px 14px; display: flex; flex-direction: column; gap: 8px; }
+.srow .line { display: flex; gap: 12px; align-items: flex-start; justify-content: space-between; }
+.srow .t { font-weight: 600; font-size: 13.5px; }
+.srow .d { color: var(--muted); font-size: 12.5px; }
+.tog { width: 36px; height: 20px; border-radius: 999px; background: var(--border-strong); border: 0; position: relative; cursor: pointer; flex: none; }
+.tog::after { content: ""; position: absolute; top: 2px; left: 2px; width: 16px; height: 16px; border-radius: 50%; background: var(--panel); transition: left .15s; }
+.tog[aria-checked="true"] { background: var(--accent); }
+.tog[aria-checked="true"]::after { left: 18px; }
+.tog:disabled { cursor: default; }
+.confirm { border-top: 1px dashed var(--border-strong); padding-top: 10px; display: flex; flex-direction: column; gap: 8px; font-size: 13px; }
+.sizes { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 2px 16px; font-size: 12.5px; font-variant-numeric: tabular-nums; }
+.sizes .tot { font-weight: 600; border-top: 1px solid var(--border); padding-top: 3px; }
+.bar { height: 8px; border-radius: 999px; background: var(--panel-2); border: 1px solid var(--border); overflow: hidden; }
+.bar i { display: block; height: 100%; background: var(--accent); width: 0; transition: width .2s linear; }
+.permrow { display: flex; justify-content: space-between; align-items: center; gap: 10px; font-size: 13px; }
+.seg { display: inline-flex; border: 1px solid var(--border-strong); border-radius: 7px; overflow: hidden; font-size: 12px; }
+.seg span { padding: 2px 9px; color: var(--muted); }
+.seg span.on { background: var(--panel-2); color: var(--ink); font-weight: 600; }
+@media (max-width: 560px) { .settings { grid-template-columns: minmax(0, 1fr); } .snav { flex-direction: row; flex-wrap: wrap; border-right: 0; border-bottom: 1px solid var(--border); } }
+
+/* misc */
+.spin { animation: spin 0.9s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .spin { animation: none; } .tog::after, .bar i { transition: none; } }
+svg.i { width: 13px; height: 13px; flex: none; }
+.toast { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(18px + env(safe-area-inset-bottom, 0px)); background: var(--ink); color: var(--bg);
+  padding: 8px 14px; border-radius: 8px; font-size: 13px; max-width: min(92vw, 520px); z-index: 10; box-shadow: 0 6px 20px rgba(0,0,0,.2); }
+.foot { margin-top: 26px; color: var(--faint); font-size: 12px; max-width: 90ch; }
+</style>
+
+<div class="page" id="page">
+  <header class="top">
+    <div>
+      <h1>Python sandbox for TurboLLM chat</h1>
+      <p>A clickable design proposal for issue #52 ("small contained Linux environment and file generation"). Nothing here is built yet. Pick a scenario, then click through it, or use the buttons inside the chat as you would in the app.</p>
+    </div>
+    <div class="legend">
+      <label class="switch"><input type="checkbox" id="tagsToggle" checked> Show what changes</label>
+      <span class="tag reuse">Reuse</span><span class="tag extend">Extend</span><span class="tag new">New</span><span class="tag v2">v2</span>
+    </div>
+  </header>
+
+  <div class="grid">
+    <nav id="picker" aria-label="Scenarios"></nav>
+    <div id="frameWrap"></div>
+    <section id="cap" class="cap" aria-live="polite"></section>
+  </div>
+
+  <p class="foot">Timings and limits come from a spike: Pyodide 0.29.5 inside Deno 2.9.6 with no network permission, run on an i5-1135G7 laptop (16 GB, about 3 GB free) and in CI on Ubuntu, macOS and Windows (<a href="https://github.com/shunya0/turbollm-52-sandbox-spike" target="_blank" rel="noopener">github.com/shunya0/turbollm-52-sandbox-spike</a>). File references point at TurboLLM <code>main</code> at 632fae6c. Proposal by @shunya0.</p>
+</div>
+
+<script>
+(() => {
+  // ── icons ──────────────────────────────────────────────────────────────────────────
+  const P = {
+    clip: '<path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l8.57-8.57A4 4 0 1 1 18 8.84l-8.59 8.57a2 2 0 0 1-2.83-2.83l8.49-8.48"/>',
+    send: '<path d="M12 19V5M5 12l7-7 7 7"/>',
+    stop: '<rect x="6" y="6" width="12" height="12" rx="1.5" fill="currentColor" stroke="none"/>',
+    ok: '<circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/>',
+    err: '<circle cx="12" cy="12" r="10"/><path d="m15 9-6 6M9 9l6 6"/>',
+    help: '<circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/>',
+    alert: '<path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><path d="M12 9v4M12 17h.01"/>',
+    load: '<path d="M21 12a9 9 0 1 1-6.219-8.56"/>',
+    file: '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/>',
+    image: '<rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-5-5L5 21"/>',
+    down: '<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10 5 5 5-5M12 15V3"/>',
+    chev: '<path d="m6 9 6 6 6-6"/>',
+    lock: '<rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>',
+  }
+  const ic = (n, cls = '', style = '') => `<svg class="i ${cls}" style="${style}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${P[n]}</svg>`
+  const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
+  const md = (s) => esc(s).replace(/\*\*(.+?)\*\*/g, '<b>$1</b>').replace(/`([^`]+)`/g, '<code>$1</code>')
+  const tag = (k, label) => `<span class="tag ${k}">${label || k}</span>`
+  const inr = (n) => '₹' + n.toLocaleString('en-IN')
+
+  // ── the "PNG" charts (drawn to one scale) ──────────────────────────────────────────
+  function barChart(title, rows, xlabel) {
+    const max = Math.max(...rows.map((r) => r[1]))
+    const rowH = 26, top = 30, labelW = 88, barW = 200, W = 380
+    const H = top + rows.length * rowH + 30
+    let s = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(title)}">`
+    s += `<text x="${W / 2}" y="18" text-anchor="middle" font-size="13" font-weight="600" fill="var(--png-ink)">${esc(title)}</text>`
+    ;[0.25, 0.5, 0.75, 1].forEach((f) => { const x = labelW + barW * f; s += `<line x1="${x}" x2="${x}" y1="${top - 4}" y2="${top + rows.length * rowH}" stroke="var(--png-grid)" stroke-width="1"/>` })
+    rows.forEach(([label, v], i) => {
+      const y = top + i * rowH, w = Math.max(1, (barW * v) / max)
+      s += `<text x="${labelW - 8}" y="${y + 17}" text-anchor="end" font-size="11.5" fill="var(--png-ink)">${esc(label)}</text>`
+      s += `<rect x="${labelW}" y="${y + 5}" width="${w.toFixed(1)}" height="16" rx="2" fill="var(--png-bar)"/>`
+      s += `<text x="${(labelW + w + 6).toFixed(1)}" y="${y + 17}" font-size="11" fill="var(--png-ink)">${inr(v)}</text>`
+    })
+    s += `<line x1="${labelW}" x2="${labelW}" y1="${top - 4}" y2="${top + rows.length * rowH}" stroke="var(--png-ink)" stroke-width="1"/>`
+    s += `<text x="${labelW + barW / 2}" y="${H - 8}" text-anchor="middle" font-size="11" fill="var(--png-ink)">${esc(xlabel)}</text>`
+    return s + '</svg>'
+  }
+  const SPEND = [['Food', 14200], ['Rent', 11000], ['Transport', 4100], ['Shopping', 3900], ['Bills', 2600], ['Other', 1500]]
+  const WEEK = [['Monday', 1450], ['Tuesday', 1200], ['Wednesday', 1600], ['Thursday', 1350], ['Friday', 2500], ['Saturday', 3700], ['Sunday', 2400]]
+
+  // ── code shown in the approval bar ─────────────────────────────────────────────────
+  const CODE = {
+    chart: `import pandas as pd
+import matplotlib.pyplot as plt
+
+df = pd.read_csv('bank-oct.csv', parse_dates=['Date'])
+spend = df[df['Amount'] < 0].copy()
+spend['Amount'] = -spend['Amount']
+by_cat = spend.groupby('Category')['Amount'].sum().sort_values()
+
+ax = by_cat.plot.barh(color='#c96442', figsize=(7, 4))
+ax.set_xlabel('₹ spent in October')
+ax.set_title('Where the money went')
+plt.tight_layout()
+plt.savefig('spending-by-category.png', dpi=150)
+
+print(by_cat.sort_values(ascending=False).to_string())
+print('Total', by_cat.sum())`,
+    week: `food = spend[spend['Category'] == 'Food']
+days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
+by_day = food.groupby(food['Date'].dt.day_name())['Amount'].sum().reindex(days, fill_value=0)
+plt.figure(); by_day.plot.barh(color='#c96442', title='Food spend by weekday')
+plt.savefig('food-by-weekday.png', dpi=150)
+print(by_day.to_string())`,
+    fix1: `import pandas as pd
+
+df = pd.read_csv('upi-statement.csv')
+mask = df['Description'].str.contains('swiggy|zomato', case=False)
+orders = df[mask]
+print(orders.groupby(orders['Description'].str.extract('(?i)(swiggy|zomato)')[0].str.title())['Amount'].agg(['sum', 'count']))`,
+    fix2: `import pandas as pd
+
+df = pd.read_csv('upi-statement.csv')
+df['App'] = df['Narration'].str.extract('(?i)(swiggy|zomato)')[0].str.title()
+orders = df.dropna(subset=['App'])
+summary = orders.groupby('App')['Withdrawal'].agg(['sum', 'count'])
+orders.to_csv('food-delivery.csv', index=False)
+print(summary.to_string())
+print('Total', summary['sum'].sum())`,
+    loop1: `rate = 0.12 / 12
+sip = 5000
+value, months = 0, 0
+while value < 1_00_00_000:
+    value = value * (1 + rate)
+    months += 1
+print(months)`,
+    loop2: `rate = 0.12 / 12
+sip = 5000
+value, months = 0, 0
+while value < 1_00_00_000:
+    value = value * (1 + rate) + sip
+    months += 1
+print(months, 'months =', months // 12, 'years', months % 12, 'months')
+print('Final value', round(value))`,
+    c1: `print(sum(range(1, 10**12 + 1)))`,
+    c2: `n = 10**12
+print(n * (n + 1) // 2)`,
+    mem1: `import numpy as np
+x = np.random.rand(200_000_000)
+print(x.mean())`,
+    mem2: `import numpy as np
+total, count = 0.0, 0
+for _ in range(20):
+    chunk = np.random.rand(10_000_000)
+    total += chunk.sum()
+    count += chunk.size
+print(round(total / count, 6))`,
+    xl1: `by_cat.sort_values(ascending=False).to_excel('spending-by-category.xlsx')`,
+    xl2: `by_cat.sort_values(ascending=False).to_csv('spending-by-category.csv', header=['Amount (₹)'])`,
+    script: `import csv
+
+seen, kept, n = set(), [], 0
+with open('contacts.csv', newline='', encoding='utf-8') as f:
+    for row in csv.DictReader(f):
+        n += 1
+        phone = ''.join(ch for ch in row['Phone'] if ch.isdigit())[-10:]
+        if phone and phone not in seen:
+            seen.add(phone)
+            row['Phone'] = phone
+            kept.append(row)
+
+with open('contacts-clean.csv', 'w', newline='', encoding='utf-8') as f:
+    w = csv.DictWriter(f, fieldnames=kept[0].keys())
+    w.writeheader()
+    w.writerows(kept)
+
+print(f'Read {n} contacts, kept {len(kept)}, removed {n - len(kept)} duplicates.')`,
+  }
+
+  const OUT_CHART = `Category
+Food         14200
+Rent         11000
+Transport     4100
+Shopping      3900
+Bills         2600
+Other         1500
+Total 37300`
+  const OUT_WEEK = WEEK.map(([d, v]) => d.padEnd(10) + String(v).padStart(6)).join('\n')
+
+  // Blocks reused across scenarios: the finished chart conversation.
+  const chartDone = [
+    { id: 'u1', type: 'user', text: 'Show where my money went this month', files: [{ name: 'bank-oct.csv', meta: '2,340 rows', ready: true }] },
+    { id: 't1', type: 'tool', status: 'done', time: '1.2s', result: OUT_CHART, open: true,
+      files: [{ kind: 'png', name: 'spending-by-category.png', size: '48 KB', chart: () => barChart('Where the money went', SPEND, '₹ spent in October') }, { kind: 'py', name: 'run-1.py', size: '1 KB' }] },
+    { id: 'a1', type: 'assistant', text: 'Food was your biggest spend at **₹14,200** (38% of ₹37,300), then rent at **₹11,000** (30%). Transport and shopping were about ₹4,000 each. The chart and the code that made it are attached above.' },
+  ]
+
+  // ── scenarios ─────────────────────────────────────────────────────────────────────
+  // Each step: push (append blocks), set (patch blocks by id), reset (start a fresh transcript),
+  // approval, composer, cap (caption), tick (animated seconds then auto-advance), auto (ms then advance).
+  const R = {
+    attach: '<code>ChatScreen.tsx:1827</code> accepts images, PDF, text, CSV, code. No <code>.xlsx</code> or <code>.zip</code>.',
+    readBrowser: '<code>ChatScreen.tsx:775-784</code> reads the file in the browser; <code>:1083</code> pastes it into the prompt as text.',
+    chipsUser: '<code>MessageBubble.tsx:882-890</code> already shows attachment name chips.',
+    inline: '<code>MessageBubble.tsx:341</code> <code>InlineToolStep</code>: live spinner and seconds counter.',
+    bar: '<code>ToolApprovalBar.tsx</code>: Deny / Allow / Allow for this chat / Always Allow.',
+    preview80: '<code>tool-explain.ts:23-25</code>: code is cut to 80 characters in the bar today.',
+    routine: '<code>MessageBubble.tsx:310</code>: routine tools already get their own card, so a special case per tool fits the codebase.',
+    elapsed: '<code>MessageBubble.tsx:326</code> <code>useElapsedSeconds</code> exists; the phase label is new.',
+    result2000: '<code>MessageBubble.tsx:295-298</code>: a finished tool shows text only, cut at 2,000 characters.',
+    download: '<code>ArtifactCard.tsx:113</code> <code>downloadBlob</code> can be reused for the file chips.',
+    codeAgentDl: '<code>CodeAgentSection.tsx</code> already has a download-with-progress button to copy.',
+    perms: '<code>ToolPermissionsSection.tsx</code>: per-tool Ask / Allow / Deny.',
+  }
+  const todayBar = `<div class="today-bar"><div><b>Tool call needs your approval:</b> <span class="mono">run_code</span></div><div class="mono">Run JavaScript: const rows = data.split('\\n').map(r =&gt; r.split(',')); const totals = {}; for (const r of …</div><div style="margin-top:4px;color:var(--muted)">[Deny] [Allow] [Allow for this chat] [Always Allow]</div></div>`
+
+  const S = [
+    { id: 'chart', group: 'Version 1', title: 'Chart from a CSV', steps: [
+      { composer: { text: 'Show where my money went this month', files: [{ name: 'bank-oct.csv', meta: '2,340 rows' }], send: true },
+        cap: { t: 'You attach a CSV and ask', b: 'Today the browser reads the file and pastes its text into the prompt. With the sandbox on, the file is also saved in this chat\'s folder, so code can open it. Press send.', refs: [R.attach, R.readBrowser],
+          extra: 'Open question for Mohit: for big files, send the model the first 20 rows plus the file name instead of all 2,340 rows.' } },
+      { push: [{ ...chartDone[0] }, { id: 't1', type: 'tool', status: 'writing' }], auto: 1600,
+        cap: { t: 'The model writes Python', b: 'The model replies with a run_python request that holds its code. The chip now says the file is ready for Python.', refs: [R.inline, R.chipsUser] } },
+      { set: [{ id: 't1', status: 'waiting' }], approval: { tool: 't1', kind: 'python', code: CODE.chart, reads: 'bank-oct.csv', prewarm: true },
+        cap: { t: 'You read the code and approve it', b: 'The bar shows all of the code, what it can read, and that the network is off. Python starts loading in the background while you read. Try Deny too.', refs: [R.bar, R.preview80, R.routine], today: todayBar } },
+      { set: [{ id: 't1', status: 'starting', elapsed: 0 }], tick: { id: 't1', to: 14, ms: 3200 }, composer: { running: true },
+        cap: { t: 'First run in this chat: Python starts', b: 'Loading Python and its libraries took 9 to 13 s in CI on Ubuntu, macOS and Windows, and up to 55 s on a laptop short of free memory. Starting during the approval hides part of that. This happens once per chat; Python then stays warm.', refs: [R.elapsed] } },
+      { set: [{ id: 't1', status: 'running', elapsed: 0 }], tick: { id: 't1', to: 1, ms: 900 }, composer: { running: true },
+        cap: { t: 'The code runs in the locked room', b: 'No network, only this chat\'s folder, memory capped at 512 MB, stoppable with ■.', refs: [] } },
+      { set: [chartDone[1]], push: [chartDone[2]],
+        cap: { t: 'The files come back', b: 'Everything the code saves appears under the tool card. Images preview inline; everything else is a download. The code itself is saved as run-1.py, so you can see exactly what ran. TurboLLM serves the files, so they survive a reload and show on your phone.', refs: [R.result2000, R.download] } },
+    ] },
+    { id: 'followup', group: 'Version 1', title: 'Follow-up question', base: chartDone, steps: [
+      { composer: { text: 'Which days do I spend most on food?', send: true },
+        cap: { t: 'Same chat, second question', b: 'Python is still running from the first answer, and the data it loaded is still in memory.', refs: [] } },
+      { push: [{ id: 'u2', type: 'user', text: 'Which days do I spend most on food?' }, { id: 't2', type: 'tool', status: 'writing' }], auto: 1200,
+        cap: { t: 'The model writes shorter code', b: 'It can use `spend` from the first run, like a notebook.', refs: [] } },
+      { set: [{ id: 't2', status: 'waiting' }], approval: { tool: 't2', kind: 'python', code: CODE.week, reads: 'data already loaded in this chat' },
+        cap: { t: 'Approve again', b: 'Every run asks in v1, so you see each program before it runs. Allow for this chat, Always Allow and Auto-allow all never apply to run_python.', refs: [R.bar] } },
+      { set: [{ id: 't2', status: 'running', elapsed: 0 }], tick: { id: 't2', to: 0, ms: 500 }, composer: { running: true },
+        cap: { t: 'No waiting this time', b: 'Python is warm, so the run starts at once.', refs: [] } },
+      { set: [{ id: 't2', status: 'done', time: '0.3s', result: OUT_WEEK, open: true, files: [{ kind: 'png', name: 'food-by-weekday.png', size: '41 KB', chart: () => barChart('Food spend by weekday', WEEK, '₹ spent on food') }, { kind: 'py', name: 'run-2.py', size: '1 KB' }] }],
+        push: [{ id: 'a2', type: 'assistant', text: 'Weekends. Saturday (**₹3,700**) and Sunday (**₹2,400**) together are 43% of your food spend.' }],
+        cap: { t: 'Warm runs skip start-up', b: '0.3 s here, because the libraries are already loaded. The chat keeps one Python per chat; after 10 idle minutes or a hard stop, start-up is paid again.', refs: [] } },
+    ] },
+    { id: 'fix', group: 'Version 1', title: 'Code with a bug', steps: [
+      { composer: { text: 'How much did I pay Swiggy and Zomato this month?', files: [{ name: 'upi-statement.csv', meta: '612 rows' }], send: true },
+        cap: { t: 'A different statement', b: 'This bank names its columns differently. Small models often guess column names wrong.', refs: [] } },
+      { push: [{ id: 'u1', type: 'user', text: 'How much did I pay Swiggy and Zomato this month?', files: [{ name: 'upi-statement.csv', meta: '612 rows', ready: true }] }, { id: 'f1', type: 'tool', status: 'writing' }], auto: 1300,
+        cap: { t: 'The model writes Python', b: '', refs: [] } },
+      { set: [{ id: 'f1', status: 'waiting' }], approval: { tool: 'f1', kind: 'python', code: CODE.fix1, reads: 'upi-statement.csv', prewarm: true },
+        cap: { t: 'You approve', b: 'The code assumes a Description column. It is wrong, but you would not know that yet.', refs: [] } },
+      { set: [{ id: 'f1', status: 'starting', elapsed: 0 }], tick: { id: 'f1', to: 12, ms: 2400 }, composer: { running: true },
+        cap: { t: 'Python starts', b: '', refs: [] } },
+      { set: [{ id: 'f1', status: 'error', note: "The code stopped with an error.", noteKind: 'err', result: "Traceback (most recent call last):\n  File \"<exec>\", line 4, in <module>\nKeyError: 'Description'", open: true }],
+        push: [{ id: 'a1', type: 'assistant', text: 'There is no Description column. This statement calls it **Narration**, and the amounts are in **Withdrawal**. Fixing that.' }, { id: 'f2', type: 'tool', status: 'writing' }], auto: 1800,
+        cap: { t: 'The model reads the error', b: 'The error goes back to the model like any tool result, and it fixes the code itself.', refs: [] } },
+      { set: [{ id: 'f2', status: 'waiting' }], approval: { tool: 'f2', kind: 'python', code: CODE.fix2, reads: 'upi-statement.csv' },
+        cap: { t: 'New code, new approval', b: 'Fixed code is different code, so you see it again before it runs.', refs: [] } },
+      { set: [{ id: 'f2', status: 'running', elapsed: 0 }], tick: { id: 'f2', to: 0, ms: 500 }, composer: { running: true }, cap: { t: 'Runs at once', b: 'Python is already warm.', refs: [] } },
+      { set: [{ id: 'f2', status: 'done', time: '0.4s', result: 'App      sum  count\nSwiggy  3240     14\nZomato  2180      9\nTotal 5420', open: true, files: [{ kind: 'csv', name: 'food-delivery.csv', size: '3 KB' }, { kind: 'py', name: 'run-2.py', size: '1 KB' }] }],
+        push: [{ id: 'a2', type: 'assistant', text: '**₹5,420** on food delivery: Swiggy ₹3,240 over 14 orders and Zomato ₹2,180 over 9. The matching rows are in food-delivery.csv.' }],
+        cap: { t: 'Fixed and done', b: 'Failed runs keep their code too (run-1.py), so you can see what went wrong.', refs: [] } },
+    ] },
+    { id: 'loop', group: 'Version 1', title: 'Code that never ends', steps: [
+      { composer: { text: 'How long until my ₹5,000 monthly SIP reaches ₹1 crore at 12% a year?', send: true },
+        cap: { t: 'A question with no file', b: 'The sandbox is also a calculator. Not every run needs an upload.', refs: [] } },
+      { push: [{ id: 'u1', type: 'user', text: 'How long until my ₹5,000 monthly SIP reaches ₹1 crore at 12% a year?' }, { id: 'l1', type: 'tool', status: 'writing' }], auto: 1200, cap: { t: 'The model writes Python', b: '', refs: [] } },
+      { set: [{ id: 'l1', status: 'waiting' }], approval: { tool: 'l1', kind: 'python', code: CODE.loop1, reads: 'nothing', prewarm: true },
+        cap: { t: 'Look closely', b: 'The loop never adds the ₹5,000, so the value stays at zero and the loop runs forever. Allow it to see what happens.', refs: [] } },
+      { set: [{ id: 'l1', status: 'starting', elapsed: 0 }], tick: { id: 'l1', to: 8, ms: 1600 }, composer: { running: true }, cap: { t: 'Python starts', b: 'Only the core is needed: about 2 s in CI, up to 8 s on a busy laptop.', refs: [] } },
+      { set: [{ id: 'l1', status: 'running', elapsed: 0 }], tick: { id: 'l1', to: 60, ms: 6000 }, composer: { running: true, stop: true }, onStop: 5,
+        cap: { t: 'It runs too long', b: 'Press ■ Stop at any time, or wait for the 60 s limit. Stop is today\'s stop button; it now also reaches Python.', refs: [] } },
+      { set: [{ id: 'l1', status: 'stopped', label: (v) => v.stopped ? `stopped by you · ${v.stopped}s` : 'stopped · 60s', note: (v) => (v.stopped ? `Stopped by you after ${v.stopped} s.` : 'Stopped after 60 s.') + ' Python kept your earlier work.', noteKind: 'warn', result: 'KeyboardInterrupt', open: true }],
+        push: [{ id: 'a1', type: 'assistant', text: 'My loop never added the monthly ₹5,000, so the value stayed at zero. Fixed version:' }, { id: 'l2', type: 'tool', status: 'writing' }], auto: 1600,
+        cap: { t: 'Stopped politely', b: 'A plain Python loop stops cleanly, with every variable kept: in CI it stopped within 0.03 s of the request in 14 of 15 runs. If it ever takes longer than 2 s, TurboLLM restarts Python instead.', refs: [] } },
+      { set: [{ id: 'l2', status: 'waiting' }], approval: { tool: 'l2', kind: 'python', code: CODE.loop2, reads: 'nothing' }, cap: { t: 'Approve the fix', b: '', refs: [] } },
+      { set: [{ id: 'l2', status: 'running', elapsed: 0 }], tick: { id: 'l2', to: 0, ms: 500 }, composer: { running: true }, cap: { t: 'Runs at once', b: '', refs: [] } },
+      { set: [{ id: 'l2', status: 'done', time: '0.1s', result: '306 months = 25 years 6 months\nFinal value 10002928', open: true, files: [{ kind: 'py', name: 'run-2.py', size: '1 KB' }] }],
+        push: [{ id: 'a2', type: 'assistant', text: 'It takes **306 months**, or 25 years and 6 months, to pass ₹1 crore (you would have ₹1,00,02,928).' }],
+        cap: { t: 'Done', b: '', refs: [] } },
+    ] },
+    { id: 'cloop', group: 'Version 1', title: 'Stuck inside C code', steps: [
+      { composer: { text: 'Add up every whole number from 1 to a trillion', send: true }, cap: { t: 'A harder case', b: 'Some code runs inside Python\'s C internals, where the polite stop cannot reach it.', refs: [] } },
+      { push: [{ id: 'u1', type: 'user', text: 'Add up every whole number from 1 to a trillion' }, { id: 'c1', type: 'tool', status: 'writing' }], auto: 1100, cap: { t: 'The model writes Python', b: '', refs: [] } },
+      { set: [{ id: 'c1', status: 'waiting' }], approval: { tool: 'c1', kind: 'python', code: CODE.c1, reads: 'nothing', prewarm: true }, cap: { t: 'One innocent line', b: '`sum(range(...))` loops inside C, a trillion times.', refs: [] } },
+      { set: [{ id: 'c1', status: 'running', elapsed: 0 }], tick: { id: 'c1', to: 60, ms: 5000 }, composer: { running: true }, cap: { t: 'It runs too long', b: '', refs: [] } },
+      { set: [{ id: 'c1', status: 'stopping' }], auto: 1800, composer: { running: true }, cap: { t: 'The polite stop fails', b: 'TurboLLM asks Python to stop and waits 2 s. The C loop never checks.', refs: [] } },
+      { set: [{ id: 'c1', status: 'restarted', note: 'Python had to restart. Variables from earlier runs are gone; your files are kept.', noteKind: 'warn', open: true }],
+        push: [{ id: 'a1', type: 'assistant', text: 'Adding a trillion numbers one by one is far too slow. The formula n(n+1)/2 gives the answer at once:' }, { id: 'c2', type: 'tool', status: 'writing' }], auto: 1500,
+        cap: { t: 'Hard stop and restart', b: 'TurboLLM ends the process and starts a fresh one. This is the only case where a chat loses its variables. Files on disk are safe.', refs: [] } },
+      { set: [{ id: 'c2', status: 'waiting' }], approval: { tool: 'c2', kind: 'python', code: CODE.c2, reads: 'nothing', prewarm: true }, cap: { t: 'Approve the fix', b: '', refs: [] } },
+      { set: [{ id: 'c2', status: 'starting', elapsed: 0 }], tick: { id: 'c2', to: 8, ms: 1600 }, composer: { running: true }, cap: { t: 'Python starts again', b: 'A fresh process: about 2 s for the core in CI, up to 8 s on a busy laptop.', refs: [] } },
+      { set: [{ id: 'c2', status: 'done', time: '0.0s', result: '500000000000500000000000', open: true, files: [{ kind: 'py', name: 'run-2.py', size: '1 KB' }] }],
+        push: [{ id: 'a2', type: 'assistant', text: 'The sum is **500,000,000,000,500,000,000,000**.' }], cap: { t: 'Done', b: '', refs: [] } },
+    ] },
+    { id: 'memory', group: 'Version 1', title: 'Too much memory', steps: [
+      { composer: { text: 'What is the average of 200 million random numbers?', send: true }, cap: { t: 'A memory-hungry request', b: '200 million numbers need 1.6 GB at once.', refs: [] } },
+      { push: [{ id: 'u1', type: 'user', text: 'What is the average of 200 million random numbers?' }, { id: 'm1', type: 'tool', status: 'writing' }], auto: 1100, cap: { t: 'The model writes Python', b: '', refs: [] } },
+      { set: [{ id: 'm1', status: 'waiting' }], approval: { tool: 'm1', kind: 'python', code: CODE.mem1, reads: 'nothing', prewarm: true }, cap: { t: 'Approve', b: '', refs: [] } },
+      { set: [{ id: 'm1', status: 'starting', elapsed: 0 }], tick: { id: 'm1', to: 10, ms: 1800 }, composer: { running: true }, cap: { t: 'Python and numpy start', b: '', refs: [] } },
+      { set: [{ id: 'm1', status: 'stopped', label: () => 'stopped · memory limit', note: 'Stopped at the 512 MB memory limit. Python kept your earlier work.', noteKind: 'warn', result: 'MemoryError', open: true }],
+        push: [{ id: 'a1', type: 'assistant', text: 'That needs 1.6 GB at once. Working in chunks of 10 million instead:' }, { id: 'm2', type: 'tool', status: 'writing' }], auto: 1500,
+        cap: { t: 'The memory cap holds', b: 'A V8 setting caps Python\'s memory at 512 MB. In the spike a memory bomb got a clean MemoryError at 400 MB on Windows, macOS and Linux, and Python stayed usable. Without the cap it reached 4.3 GB. Code that escapes Python can still grab memory outside the cap, so a watchdog in TurboLLM also ends the process if memory still climbs.', refs: [] } },
+      { set: [{ id: 'm2', status: 'waiting' }], approval: { tool: 'm2', kind: 'python', code: CODE.mem2, reads: 'nothing' }, cap: { t: 'Approve the fix', b: '', refs: [] } },
+      { set: [{ id: 'm2', status: 'running', elapsed: 0 }], tick: { id: 'm2', to: 6, ms: 1500 }, composer: { running: true }, cap: { t: 'Runs in chunks', b: '', refs: [] } },
+      { set: [{ id: 'm2', status: 'done', time: '6.1s', result: '0.500004', open: true, files: [{ kind: 'py', name: 'run-2.py', size: '1 KB' }] }],
+        push: [{ id: 'a2', type: 'assistant', text: 'The average is **0.500004**, as expected for numbers spread evenly between 0 and 1.' }], cap: { t: 'Done', b: '', refs: [] } },
+    ] },
+    { id: 'excel', group: 'Version 1', title: 'Asking for Excel', base: chartDone, steps: [
+      { composer: { text: 'Can I get that as an Excel file?', send: true }, cap: { t: 'Excel is not in v1', b: 'Pyodide does not include openpyxl, the library pandas uses to write .xlsx.', refs: [] } },
+      { push: [{ id: 'u2', type: 'user', text: 'Can I get that as an Excel file?' }, { id: 'x1', type: 'tool', status: 'writing' }], auto: 1000, cap: { t: 'The model tries anyway', b: '', refs: [] } },
+      { set: [{ id: 'x1', status: 'waiting' }], approval: { tool: 'x1', kind: 'python', code: CODE.xl1, reads: 'data already loaded in this chat' }, cap: { t: 'Approve', b: '', refs: [] } },
+      { set: [{ id: 'x1', status: 'error', note: 'Excel files are not supported yet. CSV works now; Excel, Word and PDF are planned for v2.', noteKind: 'err', result: "ModuleNotFoundError: No module named 'openpyxl'", open: true }],
+        push: [{ id: 'a2', type: 'assistant', text: 'Excel files aren\'t available here yet. A CSV opens in Excel just the same:' }, { id: 'x2', type: 'tool', status: 'writing' }], auto: 1400,
+        cap: { t: 'A plain message, not a mystery', b: 'TurboLLM adds one sentence to the error so the model and you both know why. v2 adds Excel, Word and PDF with small pinned libraries.', refs: [] } },
+      { set: [{ id: 'x2', status: 'waiting' }], approval: { tool: 'x2', kind: 'python', code: CODE.xl2, reads: 'data already loaded in this chat' }, cap: { t: 'Approve', b: '', refs: [] } },
+      { set: [{ id: 'x2', status: 'done', time: '0.1s', result: '', open: true, files: [{ kind: 'csv', name: 'spending-by-category.csv', size: '1 KB' }, { kind: 'py', name: 'run-3.py', size: '1 KB' }] }],
+        push: [{ id: 'a3', type: 'assistant', text: 'Here it is as spending-by-category.csv. Excel opens it directly.' }], cap: { t: 'Done', b: '', refs: [] } },
+    ] },
+    { id: 'phone', group: 'Version 1', title: 'On a phone', steps: [
+      { frame: 'phone', frameLabel: 'TurboLLM running on this phone (Termux or the Android app)', composer: { text: 'Chart my spending from this file', files: [{ name: 'bank-oct.csv', meta: '2,340 rows' }], send: true },
+        cap: { t: 'TurboLLM on the phone itself', b: 'The sandbox needs Deno, and Deno has no Android build. So on Android, run_python is not offered to the model at all.', refs: [] } },
+      { frame: 'phone', frameLabel: 'TurboLLM running on this phone (Termux or the Android app)',
+        push: [{ id: 'u1', type: 'user', text: 'Chart my spending from this file', files: [{ name: 'bank-oct.csv', meta: '2,340 rows' }] },
+          { id: 'a1', type: 'assistant', text: 'I can\'t run code on this device, so I can\'t make a chart file here. From the rows I can read, food is your largest category at about ₹14,200, then rent at ₹11,000.' },
+          { id: 'h1', type: 'hint', text: 'Charts and files need TurboLLM running on a computer. Open this chat from TurboLLM on your PC to make them.' }],
+        cap: { t: 'The model answers in words', b: 'No error, no broken tool. A small hint says where files can be made.', refs: [] } },
+      { frame: 'phone', frameLabel: 'Phone browser connected to TurboLLM on your PC', reset: true, push: chartDone,
+        cap: { t: 'Phone as a screen for your PC', b: 'If the phone is only a browser for TurboLLM on your PC, the code runs on the PC and everything works, downloads included.', refs: [] } },
+    ] },
+    { id: 'setup', group: 'Version 1', title: 'Turning it on', steps: [
+      { settings: 'off', cap: { t: 'Off until you switch it on', b: 'The sandbox lives under Settings → Experimental, next to Turbo Link and Remote access. Nothing is downloaded until you turn it on. Click the switch.', refs: [R.perms] } },
+      { settings: 'confirm', cap: { t: 'One download, once', b: 'About 75 MB, every file checked against a SHA-256 checksum shipped inside TurboLLM itself. Desktop only in v1.', refs: [R.codeAgentDl] } },
+      { settings: 'progress', tick: { id: 'setup', to: 100, ms: 4200 }, cap: { t: 'Downloading', b: 'After this, TurboLLM works fully offline again.', refs: [] } },
+      { settings: 'ready', cap: { t: 'Ready', b: 'run_python now appears in Tools & safety with Ask as its default. Chat files have their own size and Clear button.', refs: [R.perms] } },
+    ] },
+    { id: 'script', group: 'Version 2', title: 'Run my uploaded script', steps: [
+      { composer: { text: 'Run this script on my contacts', files: [{ name: 'clean_contacts.py', meta: '18 lines' }, { name: 'contacts.csv', meta: '449 rows' }], send: true },
+        cap: { t: 'You upload code, not just data', b: 'This time the code to run comes from a file, not from the model. It is the riskiest case, so it gets stricter rules. Planned for v2.', refs: [] } },
+      { push: [{ id: 'u1', type: 'user', text: 'Run this script on my contacts', files: [{ name: 'clean_contacts.py', meta: '18 lines', ready: true }, { name: 'contacts.csv', meta: '449 rows', ready: true }] }, { id: 'k1', type: 'tool', status: 'waiting', name: 'run_python · clean_contacts.py' }],
+        approval: { tool: 'k1', kind: 'script', code: CODE.script, reads: 'contacts.csv', file: 'clean_contacts.py', prewarm: true },
+        cap: { t: 'A stricter approval bar', b: 'The full script, a plain warning, and only Allow once. Always Allow, Allow for this chat and Auto-allow all never skip this bar. Same locks as model code: no network, this chat\'s folder only, memory and time capped.', refs: [R.bar] } },
+      { set: [{ id: 'k1', status: 'starting', elapsed: 0 }], tick: { id: 'k1', to: 8, ms: 1600 }, composer: { running: true }, cap: { t: 'Python starts', b: 'The script uses only the standard library, so no extra packages load.', refs: [] } },
+      { set: [{ id: 'k1', status: 'done', time: '0.2s', result: 'Read 449 contacts, kept 412, removed 37 duplicates.', open: true, files: [{ kind: 'csv', name: 'contacts-clean.csv', size: '18 KB' }] }],
+        push: [{ id: 'a1', type: 'assistant', text: 'Done. **37 duplicate numbers** were removed; contacts-clean.csv has the 412 contacts that are left.' }],
+        cap: { t: 'Done', b: 'If a script needs a library Pyodide does not have, the error says so plainly, as in the Excel scenario.', refs: [] } },
+    ] },
+  ]
+
+  // ── state ─────────────────────────────────────────────────────────────────────────
+  let sc = S[0], idx = 0, denied = false, vars = {}, timers = [], tickVal = {}
+  const $ = (id) => document.getElementById(id)
+  const clearTimers = () => { timers.forEach((t) => { clearTimeout(t); clearInterval(t) }); timers = [] }
+  const val = (v) => (typeof v === 'function' ? v(vars) : v)
+
+  function transcriptAt(i) {
+    let list = (sc.base || []).map((b) => ({ ...b }))
+    for (let j = 0; j <= i; j++) {
+      const st = sc.steps[j]
+      if (st.reset) list = []
+      ;(st.push || []).forEach((b) => list.push({ ...b }))
+      ;(st.set || []).forEach((p) => { const k = list.findIndex((b) => b.id === p.id); if (k >= 0) list[k] = { ...list[k], ...p } })
+    }
+    return list
+  }
+
+  // ── renderers ─────────────────────────────────────────────────────────────────────
+  function fileIcon(kind) { return kind === 'png' ? ic('image') : ic('file') }
+  function renderUser(b, live) {
+    const chips = (b.files || []).map((f) => `<span class="chip">${ic('file')}${esc(f.name)}<span class="meta">· ${esc(f.meta)}</span>${f.ready ? '<span class="ready">· ready for Python</span>' : ''}</span>`).join('')
+    const hasReady = (b.files || []).some((f) => f.ready)
+    return `<div class="u"><div class="bubble">${esc(b.text)}</div>${chips ? `<div class="chips">${hasReady ? tag('extend') : ''}${chips}</div>` : ''}</div>`
+  }
+  function statusParts(b) {
+    const t = tickVal[b.id] ?? b.elapsed ?? 0
+    switch (b.status) {
+      case 'writing': return [ic('load', 'spin', 'color:var(--accent)'), '<span class="st live">writing code…</span>', 'reuse']
+      case 'waiting': return [ic('help', '', 'color:var(--warn)'), '<span class="st warnc">waiting on you</span>', 'reuse']
+      case 'starting': return [ic('load', 'spin', 'color:var(--accent)'), `<span class="st live">Starting Python… (first run in this chat)</span><span class="st" data-el="${b.id}">· ${t}s</span>`, 'extend']
+      case 'running': return [ic('load', 'spin', 'color:var(--accent)'), `<span class="st live">running…</span><span class="st" data-el="${b.id}">· ${t}s</span>`, 'reuse']
+      case 'stopping': return [ic('load', 'spin', 'color:var(--warn)'), '<span class="st warnc">Asking Python to stop…</span>', 'extend']
+      case 'stopped': return [ic('alert', '', 'color:var(--warn)'), `<span class="st warnc">${esc(val(b.label) || 'stopped')}</span>`, 'extend']
+      case 'restarted': return [ic('alert', '', 'color:var(--warn)'), '<span class="st warnc">stopped · Python restarted</span>', 'extend']
+      case 'error': return [ic('err', '', 'color:var(--err)'), '<span class="st">error</span>', 'reuse']
+      case 'declined': return [ic('err', '', 'color:var(--faint)'), '<span class="st">declined</span>', 'reuse']
+      default: return [ic('ok', '', 'color:var(--ok)'), `<span class="st">done${b.time ? ' · ' + b.time : ''}</span>`, 'reuse']
+    }
+  }
+  function renderTool(b) {
+    const [icon, st, t] = statusParts(b)
+    const note = val(b.note)
+    const body = b.open && (note || b.result)
+      ? `<div class="tool-body">${note ? `<div class="note ${b.noteKind === 'err' ? 'err' : b.noteKind === 'ok' ? 'ok' : ''}">${esc(note)}</div>` : ''}${b.result ? `<pre class="out">${esc(b.result)}</pre>` : ''}</div>` : ''
+    let files = ''
+    if (b.files && b.files.length) {
+      const pngs = b.files.filter((f) => f.chart).map((f) => `<div class="png">${f.chart()}</div>`).join('')
+      const dls = b.files.map((f) => `<button class="dl" data-dl="${esc(f.name)}">${fileIcon(f.kind)}${esc(f.name)} <span class="sz">${esc(f.size)}</span>${ic('down')}</button>`).join('')
+      files = `<div class="files tagged"><span class="tagpos">${tag('new')}</span>${pngs}<div class="dl-row">${dls}</div></div>`
+    }
+    return `<div class="tagged tool-wrap"><span class="tagpos">${tag(t)}</span><div class="tool${b.status === 'waiting' ? 'wait' : ''}"><div class="tool-head">${icon}<span class="name">${esc(b.name || 'run_python')}</span>${st}${b.open && (note || b.result) ? `<span class="chev">${ic('chev')}</span>` : ''}</div>${body}</div></div>${files}`
+  }
+  function renderBlock(b) {
+    if (b.type === 'user') return renderUser(b)
+    if (b.type === 'assistant') return `<div class="a"><p>${md(b.text)}</p></div>`
+    if (b.type === 'hint') return `<div class="tagged"><span class="tagpos">${tag('new')}</span><div class="note">${esc(b.text)}</div></div>`
+    return renderTool(b)
+  }
+  function renderApproval(a) {
+    const lines = a.code.split('\n').map((l) => `<span class="ln">${esc(l) || ' '}</span>`).join('')
+    const script = a.kind === 'script'
+    const head = script ? `<b>Run a script you uploaded?</b> <span style="font-family:var(--font-mono);font-size:12px">${esc(a.file)}</span>` : '<b>Run Python in this chat\'s sandbox?</b>'
+    const btns = script
+      ? `<button class="btn sm" data-act="deny">Deny</button><button class="btn sm primary" data-act="allow">Allow once</button>`
+      : `<button class="btn sm" data-act="deny">Deny</button><button class="btn sm primary" data-act="allow">Allow once</button>`
+    return `<div class="approval tagged"><span class="tagpos">${tag(script ? 'v2' : 'extend')}</span>
+      <div class="ah">${ic('lock', '', 'color:var(--warn)')}${head}</div>
+      <div class="facts"><span>Reads: <b>${esc(a.reads)}</b></span><span>Saves to: <b>this chat's files</b></span><span>Network: <b>off</b></span><span>Memory: <b>512 MB</b></span><span>Time: <b>60 s</b></span></div>
+      ${script ? `<div class="warnline">This code came from <b>${esc(a.file)}</b>, not from the model. Read it before you allow it. Uploaded scripts ask every time.</div>` : ''}
+      <div class="codebox"><pre>${lines}</pre></div>
+      ${a.prewarm ? `<div class="prewarm">${ic('load', 'spin')} Python is starting in the background while you read.</div>` : ''}
+      <div class="abtns">${btns}</div></div>`
+  }
+  function renderComposer(c) {
+    c = c || {}
+    const chips = (c.files || []).map((f) => `<span class="chip">${ic('file')}${esc(f.name)}<span class="meta">· ${esc(f.meta)}</span></span>`).join('')
+    const text = c.text ? `<div class="ctext">${esc(c.text)}</div>` : '<div class="ctext ph">Message TurboLLM…</div>'
+    const right = c.running
+      ? `<span class="tagged"><button class="icobtn stop" data-act="stop" aria-label="Stop" ${c.stop ? '' : 'disabled'}>${ic('stop')}</button></span>`
+      : `<button class="icobtn send" data-act="send" aria-label="Send" ${c.send ? '' : 'disabled'}>${ic('send')}</button>`
+    return `<div class="composer${chips ? ' tagged' : ''}">${chips ? `<span class="tagpos">${tag('extend')}</span><div class="cchips">${chips}</div>` : ''}<div class="crow"><button class="icobtn" aria-label="Attach" tabindex="-1">${ic('clip')}</button>${text}${right}</div></div>`
+  }
+  function stageFor(pct) {
+    return pct < 53 ? 'Deno 2.9.6 runtime (40 MB)' : pct < 70 ? 'Python 0.29.5 core (13 MB)' : pct < 97 ? 'Libraries: pandas, numpy, matplotlib, Pillow, sympy and 10 more (22 MB)' : 'Checking SHA-256 checksums'
+  }
+  function renderSettings(mode) {
+    const pct = tickVal.setup ?? 0
+    const stage = stageFor(pct)
+    const on = mode === 'ready'
+    let extra = ''
+    if (mode === 'confirm') extra = `<div class="confirm"><div>Turning this on downloads the sandbox once. Desktop only (Windows, macOS, Linux).</div>
+      <div class="sizes"><span>Deno 2.9.6 (the locked room)</span><span>40 MB</span><span>Python 0.29.5 core (Pyodide)</span><span>13 MB</span><span>15 libraries: pandas, numpy, matplotlib, Pillow, sympy…</span><span>22 MB</span><span class="tot">Total, each file checksum-verified</span><span class="tot">75 MB</span></div>
+      <div class="nav"><button class="btn sm" data-act="cancel">Cancel</button><button class="btn sm primary" data-act="next">Download and turn on</button></div></div>`
+    if (mode === 'progress') extra = `<div class="confirm"><div class="bar"><i data-bar style="width:${pct}%"></i></div><div class="srow d" style="border:0;padding:0;background:none" data-stage>${esc(stage)} · <span data-pct>${pct}</span>%</div></div>`
+    if (on) extra = `<div class="confirm"><div class="note ok">Ready. 75 MB on disk. Works offline from now on.</div><div class="permrow"><span>Chat files: <b>0 MB</b> across 0 chats</span><button class="btn sm" disabled>Clear</button></div></div>`
+    return `<div class="settings"><div class="snav"><div>General</div><div>Models</div><div>Engines</div><div>Tools &amp; safety</div><div>Network &amp; sharing</div><div class="on">Experimental</div></div>
+      <div class="sbody"><h3>Experimental</h3>
+        <div class="srow"><div class="line"><div><div class="t">Turbo Link</div><div class="d">Use another TurboLLM machine's models as if they were local.</div></div><button class="tog" role="switch" aria-checked="false" disabled aria-label="Turbo Link"></button></div></div>
+        <div class="srow"><div class="line"><div><div class="t">Remote access</div><div class="d">Reach TurboLLM through a tunnel.</div></div><button class="tog" role="switch" aria-checked="false" disabled aria-label="Remote access"></button></div></div>
+        <div class="srow tagged"><span class="tagpos">${tag('extend')}</span><div class="line"><div><div class="t">Python sandbox</div><div class="d">Lets chat run Python in a locked room to make charts, edit photos and produce files. No network, this chat's files only.</div></div><button class="tog" role="switch" id="sbToggle" aria-checked="${on || mode === 'progress' ? 'true' : 'false'}" data-act="${mode === 'off' ? 'next' : ''}" ${mode === 'off' ? '' : 'disabled'} aria-label="Python sandbox"></button></div>${extra}</div>
+        ${on ? `<h3 style="margin-top:6px">Tools &amp; safety</h3><div class="srow tagged"><span class="tagpos">${tag('reuse')}</span><div class="permrow"><span style="font-family:var(--font-mono);font-size:12.5px">run_python</span><span class="seg"><span class="on">Ask</span><span>Allow</span><span>Deny</span></span></div><div class="permrow"><span style="font-family:var(--font-mono);font-size:12.5px">run_code</span><span class="seg"><span class="on">Ask</span><span>Allow</span><span>Deny</span></span></div></div>` : ''}
+      </div></div>`
+  }
+
+  function render() {
+    const st = sc.steps[idx]
+    // picker
+    const groups = [...new Set(S.map((s) => s.group))]
+    $('picker').innerHTML = groups.map((g) => `<div class="group-label">${g}</div><div class="scen-wrap"><div class="scen-list">${S.map((s, k) => s.group === g ? `<button class="scen" data-scen="${s.id}" aria-current="${s === sc}"><span class="n">${k + 1}</span>${esc(s.title)}</button>` : '').join('')}</div></div>`).join('')
+
+    // frame
+    const phone = st.frame === 'phone'
+    let inner
+    if (st.settings) {
+      inner = `<div class="appbar"><span class="logo"></span><span class="title">Settings</span></div>${renderSettings(st.settings)}`
+    } else {
+      let list = transcriptAt(idx)
+      if (denied && st.approval) {
+        list = list.map((b) => b.id === st.approval.tool ? { ...b, status: 'declined', open: true, note: 'You declined, so nothing ran.', noteKind: 'warn' } : b)
+        list.push({ id: 'deny', type: 'assistant', text: 'Okay, I won\'t run it. I can explain what the code would do, or change it first.' })
+      }
+      const tr = list.length ? list.map(renderBlock).join('') : '<div class="empty-chat">New chat</div>'
+      const showApproval = st.approval && !denied
+      const comp = denied ? {} : (st.composer || {})
+      inner = `<div class="appbar"><span class="logo"></span><span class="title">${sc.id === 'chart' || sc.base ? 'October spending' : esc(sc.title)}</span><span class="modelchip">Qwen3 8B · Q4_K_M</span></div>
+        <div class="transcript" id="tr">${tr}</div>${showApproval ? renderApproval(st.approval) : ''}${renderComposer(comp)}`
+    }
+    $('frameWrap').innerHTML = `${st.frameLabel ? `<div class="frame-label">${esc(st.frameLabel)}</div>` : ''}<div class="frame ${phone ? 'phone' : ''}">${inner}</div>`
+    const tr = $('tr'); if (tr) tr.scrollTop = tr.scrollHeight
+
+    // caption
+    const c = denied ? { t: 'You clicked Deny', b: 'Nothing runs. The model is told you declined and carries on. This is how TurboLLM handles a denied tool today. Press Back to try again.', refs: [R.bar] } : st.cap
+    const refs = (c.refs || []).length ? `<ul class="refs">${c.refs.map((r) => `<li>${r}</li>`).join('')}</ul>` : ''
+    const isLast = idx === sc.steps.length - 1
+    $('cap').innerHTML = `<div class="stepno">${esc(sc.title)} · step ${idx + 1} of ${sc.steps.length}</div><h2>${esc(c.t)}</h2>${c.b ? `<p>${md(c.b)}</p>` : ''}${c.extra ? `<p style="color:var(--muted)">${md(c.extra)}</p>` : ''}${refs}${c.today && !denied ? `<div class="today"><div class="today-label">The same bar today</div>${c.today}</div>` : ''}
+      <div class="nav"><button class="btn" data-act="back" ${idx === 0 && !denied ? 'disabled' : ''}>Back</button><button class="btn primary" data-act="next" ${isLast || denied ? 'disabled' : ''}>Next</button><button class="btn" data-act="restart">Restart</button></div>`
+
+    // timers
+    if (!denied) {
+      if (st.tick) {
+        const { id, to, ms } = st.tick, t0 = performance.now()
+        tickVal[id] = 0
+        timers.push(setInterval(() => {
+          const f = Math.min(1, (performance.now() - t0) / ms), v = Math.round(to * f)
+          tickVal[id] = v
+          document.querySelectorAll(`[data-el="${id}"]`).forEach((el) => { el.textContent = `· ${v}s` })
+          if (id === 'setup') {
+            const bar = document.querySelector('[data-bar]'); if (bar) bar.style.width = v + '%'
+            const p = document.querySelector('[data-stage]'); if (p) p.innerHTML = `${esc(stageFor(v))} · <span data-pct>${v}</span>%`
+          }
+          if (f >= 1) { clearTimers(); go(idx + 1) }
+        }, id === 'setup' ? 180 : 100))
+      } else if (st.auto) {
+        timers.push(setTimeout(() => go(idx + 1), st.auto))
+      }
+    }
+  }
+
+  function go(i) {
+    clearTimers()
+    if (i < 0 || i >= sc.steps.length) return
+    if (i === 0) vars = {}
+    // Back before a Stop step forgets that you pressed Stop.
+    if (sc.steps.slice(i).some((s) => s.onStop != null)) delete vars.stopped
+    tickVal = {}
+    idx = i; denied = false
+    paint()
+  }
+  function paint() { render() }
+  function pick(id) {
+    const s = S.find((x) => x.id === id); if (!s) return
+    sc = s; vars = {}; tickVal = {}; go(0)
+    try { localStorage.setItem('sbx-scen', id) } catch (e) {}
+  }
+  let toastT
+  function toast(msg) {
+    let el = document.querySelector('.toast')
+    if (!el) { el = document.createElement('div'); el.className = 'toast'; el.setAttribute('role', 'status'); document.body.appendChild(el) }
+    el.textContent = msg; el.hidden = false
+    clearTimeout(toastT); toastT = setTimeout(() => { el.hidden = true }, 3200)
+  }
+
+  document.addEventListener('click', (e) => {
+    const s = e.target.closest('[data-scen]'); if (s) { pick(s.dataset.scen); return }
+    const d = e.target.closest('[data-dl]'); if (d) { toast(`In TurboLLM this downloads ${d.dataset.dl} from the chat's folder.`); return }
+    const a = e.target.closest('[data-act]'); if (!a || a.disabled) return
+    const act = a.dataset.act, st = sc.steps[idx]
+    if (act === 'next' || act === 'send' || act === 'allow') go(idx + 1)
+    else if (act === 'allow_chat') { toast('Allowed for this chat: later runs in this chat skip the bar.'); go(idx + 1) }
+    else if (act === 'always') { toast('Always Allow: run_python stops asking for model-written code. Uploaded scripts still ask.'); go(idx + 1) }
+    else if (act === 'deny') { clearTimers(); denied = true; paint() }
+    else if (act === 'back') { if (denied) { denied = false; paint() } else go(idx - 1) }
+    else if (act === 'restart') go(0)
+    else if (act === 'cancel') go(0)
+    else if (act === 'stop' && st.onStop != null) { vars.stopped = tickVal[st.tick.id] || 1; clearTimers(); idx = st.onStop; denied = false; paint() }
+  })
+  document.addEventListener('keydown', (e) => {
+    if (e.target.closest('input,textarea')) return
+    if (e.key === 'ArrowRight') { if (!denied) go(idx + 1) } else if (e.key === 'ArrowLeft') { if (denied) { denied = false; paint() } else go(idx - 1) }
+  })
+  $('tagsToggle').addEventListener('change', (e) => { $('page').classList.toggle('tags-off', !e.target.checked) })
+
+  let start = 'chart'
+  try { start = localStorage.getItem('sbx-scen') || start } catch (e) {}
+  const h = location.hash.slice(1); if (S.some((s) => s.id === h)) start = h
+  pick(start)
+})()
+</script>
+
+</body></html>

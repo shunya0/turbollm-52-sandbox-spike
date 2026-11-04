@@ -6,6 +6,8 @@ Throwaway experiments behind the Python sandbox proposal on [TurboLLM issue #52]
 
 None of this is TurboLLM code, and none of it changes TurboLLM. Experiment 2 starts a TurboLLM daemon from a source checkout with a brand-new config in a temp folder; your own `~/.turbollm` is never touched.
 
+The clickable design mockup for the proposal is in [`mockup/python-sandbox-mockup.html`](mockup/python-sandbox-mockup.html): one self-contained file with no external scripts, the same page as the claude.ai version linked from the issue. Download it and open it in any browser.
+
 ## Setup
 
 Needs Node 22+ and Deno 2.x.
