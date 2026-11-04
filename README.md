@@ -36,12 +36,12 @@ The [CI workflow](.github/workflows/spike.yml) does this on every push on Ubuntu
 | 3 | Does Deno's permission model stop it? | `node 3-listener.mjs`, then `deno run --no-prompt --allow-read=runtime 3-deno-wall.mjs <home folder>` | **12 of 12 blocked** (`NotCapable`): network four ways, reading TurboLLM's config and a system file, writing a file, starting a program two ways, env, FFI, network from a Worker. The listener received nothing |
 | 3 (control) | Are those attacks real? | same, with `--allow-read --allow-net --allow-env` | 7 got through (the four network attacks, the system file, env, the Worker); the ones still blocked had no permission granted |
 | 4 | Do real use cases work offline in the wall? | `deno run --no-prompt --allow-read=runtime 4-use-cases.mjs [--emit]` | All four: CSV → chart, loan EMI ₹19,812.20 with a 180-row schedule, sympy roots [1, 2, 3] + plot, photo resize. 465 MB RSS at the end |
-| 4b | Where does start-up time go? | `node 4b-start-timing.mjs` / `deno run --no-prompt --allow-read=runtime 4b-start-timing.mjs` | Varies a lot. 31 Oct: core about 8 s, pandas 11–13 s, matplotlib about 8 s, sympy about 14 s, so 45–55 s for everything. 1 Nov, right after `fetch-runtime.mjs` (files likely still in the OS disk cache): core 3.4 s, pandas 3.9 s, matplotlib 2.4 s, sympy 4.5 s, about 17 s in all. Deno and Node about the same |
+| 4b | Where does start-up time go? | `node 4b-start-timing.mjs` / `deno run --no-prompt --allow-read=runtime 4b-start-timing.mjs` | Depends mostly on free memory. On my machine, short of memory on 31 Oct: 45–55 s for everything. 1 Nov, right after `fetch-runtime.mjs`: about 17 s. In CI (4 Nov, Deno): 9.0 s Ubuntu, 12.4 s macOS, 12.6 s Windows, with sympy and pandas the slowest imports. Deno and Node about the same |
 | 4c | Can a memory snapshot skip that? | `node 4c-snapshot.mjs make <new file>` | **Not on 0.29.5:** "Unexpected hiwire entry at index 6" |
 | 5 | Can memory be capped? | `deno run --no-prompt --allow-read=runtime [--v8-flags=--wasm-max-mem-pages=8192] 5-memory.mjs [escaped]` | Without the flag: MemoryError only at 4,000 MB (RSS 4.3 GB). With it: MemoryError at 400 MB, peak RSS about 560 MB, Python still usable. Escaped JS cannot grow WebAssembly memory past the cap, but can still allocate a plain ArrayBuffer, so the host needs its own watchdog |
 | 6 | Can runaway code be stopped? | `deno run --no-prompt --allow-read=runtime,6-stop-worker.mjs 6-stop.mjs` | A Python loop stops in about 2 s and keeps its variables. `sum(range(10**12))` runs in C, ignores the interrupt, and needs a hard kill |
 
-Measured on 31 Oct and 1 Nov 2026: Windows 11, i5-1135G7, 16 GB RAM with only about 3 GB free, Node 22.17.0, Deno 2.9.6, Pyodide 0.29.5, TurboLLM `main` at 632fae6c. Timings will be better on an idle machine.
+"My machine" is Windows 11, i5-1135G7, 16 GB RAM with only about 3 GB free, Node 22.17.0, Deno 2.9.6, Pyodide 0.29.5, TurboLLM `main` at 632fae6c, on 31 Oct and 1 Nov 2026. Every claim in the table also passes in CI on Ubuntu, macOS (Apple Silicon) and Windows; see the latest run for the numbers on each.
 
 ## Notes
 
@@ -51,4 +51,5 @@ Measured on 31 Oct and 1 Nov 2026: Windows 11, i5-1135G7, 16 GB RAM with only ab
 - `fetch-runtime.mjs` writes `runtime/package.json` with `{"type":"commonjs"}`; Deno needs it to load `pyodide.asm.js`.
 - Experiment 3's write attempt targets `<home>/spike-should-not-exist.txt` and must fail. Do not run it with `--allow-write`.
 - Experiment 5 without the flag allocates up to about 4 GB. Run it only on a machine with room for that.
-- Not covered yet: the daemon-side memory watchdog on each OS, the daemon↔sandbox framing with large files, running from a built npm package, macOS and Linux runs.
+- Experiment 5 in CI: escaped JS cannot grow WebAssembly memory past the cap on any OS, but a plain 1 GB ArrayBuffer still allocates (RSS reached 1.6–1.7 GB on Ubuntu and Windows). That is why the daemon-side memory watchdog is part of v1.
+- Not covered yet: the daemon-side memory watchdog itself, the daemon↔sandbox framing with large files, running from a built npm package.

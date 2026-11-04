@@ -17,9 +17,9 @@ jobs:
     runs-on: ${{ matrix.os }}
     timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
           node-version: 22
 
@@ -33,7 +33,7 @@ jobs:
           node fetch-runtime.mjs
 
       # Experiment 2 needs a real TurboLLM. Pinned to the commit the spike was run against.
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           repository: mohitsoni48/TurboLLM
           ref: 632fae6ce8f1025c6129fb4e729cc905e9463f35
@@ -50,7 +50,7 @@ jobs:
 
       - name: Keep the files the sandbox handed back
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: sandbox-output-${{ matrix.os }}
           path: ci-out/
