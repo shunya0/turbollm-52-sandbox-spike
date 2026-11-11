@@ -508,7 +508,7 @@ Total 37300`
     ] },
     { id: 'setup', group: 'Version 1', title: 'Turning it on', steps: [
       { settings: 'off', cap: { t: 'Off until you switch it on', b: 'The sandbox lives under Settings → Experimental, next to Turbo Link and Remote access. Nothing is downloaded until you turn it on. Click the switch.', refs: [R.perms] } },
-      { settings: 'confirm', cap: { t: 'One download, once', b: 'About 75 MB, every file checked against a SHA-256 checksum shipped inside TurboLLM itself. Desktop only in v1.', refs: [R.codeAgentDl] } },
+      { settings: 'confirm', cap: { t: 'One download, once', b: 'About 77 MB to download and about 130 MB on disk once unpacked, every file checked against a SHA-256 checksum shipped inside TurboLLM itself. Desktop only in v1.', refs: [R.codeAgentDl] } },
       { settings: 'progress', tick: { id: 'setup', to: 100, ms: 4200 }, cap: { t: 'Downloading', b: 'After this, TurboLLM works fully offline again.', refs: [] } },
       { settings: 'ready', cap: { t: 'Ready', b: 'run_python now appears in Tools & safety with Ask as its default. Chat files have their own size and Clear button.', refs: [R.perms] } },
     ] },
@@ -616,10 +616,10 @@ Total 37300`
     const on = mode === 'ready'
     let extra = ''
     if (mode === 'confirm') extra = `<div class="confirm"><div>Turning this on downloads the sandbox once. Desktop only (Windows, macOS, Linux).</div>
-      <div class="sizes"><span>Deno 2.9.6 (the locked room)</span><span>40 MB</span><span>Python 0.29.5 core (Pyodide)</span><span>13 MB</span><span>15 libraries: pandas, numpy, matplotlib, Pillow, sympy…</span><span>22 MB</span><span class="tot">Total, each file checksum-verified</span><span class="tot">75 MB</span></div>
+      <div class="sizes"><span>Deno 2.9.6 (the locked room)</span><span>42 MB</span><span>Python 0.29.5 core (Pyodide)</span><span>12 MB</span><span>15 libraries: pandas, numpy, matplotlib, Pillow, sympy…</span><span>22 MB</span><span class="tot">Download, each file checksum-verified</span><span class="tot">77 MB</span><span>On disk once Deno is unpacked</span><span>about 130 MB</span></div>
       <div class="nav"><button class="btn sm" data-act="cancel">Cancel</button><button class="btn sm primary" data-act="next">Download and turn on</button></div></div>`
     if (mode === 'progress') extra = `<div class="confirm"><div class="bar"><i data-bar style="width:${pct}%"></i></div><div class="srow d" style="border:0;padding:0;background:none" data-stage>${esc(stage)} · <span data-pct>${pct}</span>%</div></div>`
-    if (on) extra = `<div class="confirm"><div class="note ok">Ready. 75 MB on disk. Works offline from now on.</div><div class="permrow"><span>Chat files: <b>0 MB</b> across 0 chats</span><button class="btn sm" disabled>Clear</button></div></div>`
+    if (on) extra = `<div class="confirm"><div class="note ok">Ready. About 130 MB on disk. Works offline from now on.</div><div class="permrow"><span>Chat files: <b>0 MB</b> across 0 chats</span><button class="btn sm" disabled>Clear</button></div></div>`
     return `<div class="settings"><div class="snav"><div>General</div><div>Models</div><div>Engines</div><div>Tools &amp; safety</div><div>Network &amp; sharing</div><div class="on">Experimental</div></div>
       <div class="sbody"><h3>Experimental</h3>
         <div class="srow"><div class="line"><div><div class="t">Turbo Link</div><div class="d">Use another TurboLLM machine's models as if they were local.</div></div><button class="tog" role="switch" aria-checked="false" disabled aria-label="Turbo Link"></button></div></div>
