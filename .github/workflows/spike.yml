@@ -54,3 +54,43 @@ jobs:
         with:
           name: sandbox-output-${{ matrix.os }}
           path: ci-out/
+
+  # Experiment 7: a real install with the code from TurboLLM PR 1 (#313), then the PR 2 Deno launch options run
+  # against the Deno that install put on disk. No setup-deno here on purpose.
+  pr1-install:
+    name: PR 1 install + launch options (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+
+      # Pinned to the head commit of mohitsoni48/TurboLLM#313.
+      - uses: actions/checkout@v5
+        with:
+          repository: shunya0/TurboLLM
+          ref: fdb06d90cb07af8ecb63e3305ba27a126aad9eef
+          path: turbollm-src
+
+      - name: Install TurboLLM's dependencies
+        working-directory: turbollm-src/turbollm
+        run: npm ci
+
+      - name: Install with PR 1's code, then run the launch options
+        env:
+          TURBOLLM_DIR: ${{ github.workspace }}/turbollm-src/turbollm
+        run: node ci/pr1-check.mjs
+
+      - name: Keep the logs
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: pr1-install-${{ matrix.os }}
+          path: ci-out/
